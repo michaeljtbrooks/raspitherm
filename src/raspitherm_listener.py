@@ -25,22 +25,18 @@ except ImportError:
     #python3
     from urllib.parse import urlencode
 import configparser
-import copy
-import datetime
 import logging
 import json
 import os
-from subprocess import check_output, CalledProcessError
-import time
-from twisted.internet import reactor, endpoints,protocol
+from twisted.internet import reactor, endpoints
 from twisted.web.resource import Resource
-from twisted.web.server import Site, Request
+from twisted.web.server import Site
 from twisted.web.static import File
 
 from heating_controller import HeatingController
 
 
-APP_NAME="python ./raspitherm_listener.py"
+APP_NAME = "python ./raspitherm_listener.py"
 
 logging.basicConfig(format='[%(asctime)s RASPITHERM] %(message)s',
                             datefmt='%H:%M:%S',level=logging.INFO)
@@ -78,6 +74,7 @@ CONFIG_SETTINGS = Odict2int(parser.defaults()) #Turn the Config file into settin
 
 DEBUG = False
 
+
 def D(item):
     if DEBUG:
         print(item)
@@ -93,6 +90,7 @@ class RaspithermControlResource(Resource):
     PARAM_TO_ACTION_MAPPING = (
         ("ch", "ch"),
         ("hw", "hw"),
+        ("status", "status")
     )
     
     def __init__(self, *args, **kwargs):
@@ -101,8 +99,8 @@ class RaspithermControlResource(Resource):
         """
         self.heating_controller = HeatingController(CONFIG_SETTINGS)
         Resource.__init__(self, *args, **kwargs) #Super
-        #Add in the static folder
-        static_folder = os.path.join(RASPILED_DIR,"static")
+        # Add in the static folder
+        static_folder = os.path.join(RASPILED_DIR, "static")
         self.putChild("static", File(static_folder))
     
     def getChild(self, path, request, *args, **kwargs):
@@ -135,16 +133,16 @@ class RaspithermControlResource(Resource):
         """
         _action_result = None
         
-        #Look through the actions if the request key exists, perform that action
+        # Look through the actions if the request key exists, perform that action
         return_json = False
         for key_name, action_name in self.PARAM_TO_ACTION_MAPPING:
             if request.has_param(key_name):
                 action_func_name = "action__%s" % action_name
                 _action_result = getattr(self, action_func_name)(request) #Execute that function
-                return_json = True;
+                return_json = True
                 break
         
-        #Read our statuses:
+        # Read our statuses:
         self.heating_controller.check_status()  # Actually reads from the pins and updates internal vars
         if self.heating_controller.hw:
             hw_status = "on"
@@ -163,11 +161,11 @@ class RaspithermControlResource(Resource):
             ch_status_js = 0
             ch_checked_attr = ""
         
-        #Return a JSON object if a result:
+        # Return a JSON object if a result:
         if _action_result is not None or return_json:
             json_data = {
-                "hw_status_js" : hw_status_js,
-                "ch_status_js" : ch_status_js,
+                "hw_status_js": hw_status_js,
+                "ch_status_js": ch_status_js,
                 "hw_status": hw_status,
                 "ch_status": ch_status,
                 "hw": hw_status,
@@ -178,7 +176,7 @@ class RaspithermControlResource(Resource):
             except:
                 return b"Error: Json fkucked up"
         
-        #Otherwise return normal page
+        # Otherwise return normal page
         request.setHeader("Content-Type", "text/html; charset=utf-8")
         with open(RASPILED_DIR+'/templates/index.html', "r") as web_template:
             htmlstr = web_template.read()  # Reads en bloc. More preferable to line by line concatenation
@@ -207,6 +205,13 @@ class RaspithermControlResource(Resource):
         intended_status = request.get_param("ch", force=unicode)
         outcome = self.heating_controller.set_ch(intended_status)
         logging.info("Turn central heating {}, status now: {}".format(intended_status, outcome))
+        return outcome
+
+    def action__status(self, request):
+        """
+        Report the status of the heating / hot water
+        """
+        outcome = self.heating_controller.check_status()
         return outcome
     
     def teardown(self):

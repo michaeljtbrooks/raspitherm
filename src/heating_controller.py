@@ -18,7 +18,8 @@ import pigpio
 from time import sleep
 from utils import BaseRaspiHomeDevice
 
-logging.basicConfig(format='[%(asctime)s RASPITHERM] %(message)s', datefmt='%H:%M:%S',level=logging.INFO)
+
+logging.basicConfig(format=b'[%(asctime)s RASPITHERM] %(message)s', datefmt=b'%H:%M:%S', level=logging.INFO)
 
 
 class HeatingController(BaseRaspiHomeDevice):
@@ -140,4 +141,4 @@ class HeatingController(BaseRaspiHomeDevice):
         Called when exiting the listener. Tear down any async threads here
         """
         logging.info("\tHeatingController {}: exiting...".format(self.__class__.__name__))
-    
+
