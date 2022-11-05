@@ -1,4 +1,8 @@
-# Raspitherm #
+**This repository is for Python 2 only and is deprecated. The Python 3 repository is here: [Raspitherm3](https://github.com/michaeljtbrooks/raspitherm3/)**
+
+
+# Raspitherm - Python 2 #
+
 
 Raspberry Pi controlled hot water / central heating
 
